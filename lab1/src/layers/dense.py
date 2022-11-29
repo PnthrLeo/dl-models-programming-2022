@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, Tuple
 
-import numpy as np
+import cupy as np
 
 from src.base import Layer
 

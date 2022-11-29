@@ -1,6 +1,6 @@
 from src.base import Layer
 
-import numpy as np
+import cupy as np
 
 
 class DropoutLayer(Layer):

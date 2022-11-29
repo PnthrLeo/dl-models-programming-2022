@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from typing import Tuple, Optional
 
-import numpy as np
+import cupy as np
 
-from lab1.src.base import Layer
+from src.base import Layer
 from src.errors import InvalidPaddingModeError
 
 
@@ -15,6 +15,7 @@ class ConvLayer2D(Layer):
         self, w: np.array,
         b: np.array,
         padding: str = 'valid',
+        padding_value: int = 0,
         stride: int = 1
     ):
         """
@@ -30,6 +31,7 @@ class ConvLayer2D(Layer):
         """
         self._w, self._b = w, b
         self._padding = padding
+        self._padding_value = padding_value
         self._stride = stride
         self._dw, self._db = None, None
         self._a_prev = None
@@ -39,11 +41,12 @@ class ConvLayer2D(Layer):
         cls, filters: int,
         kernel_shape: Tuple[int, int, int],
         padding: str = 'valid',
+        padding_value: int = 0,
         stride: int = 1
     ) -> ConvLayer2D:
         w = np.random.randn(*kernel_shape, filters) * 0.1
         b = np.random.randn(filters) * 0.1
-        return cls(w=w, b=b, padding=padding, stride=stride)
+        return cls(w=w, b=b, padding=padding, padding_value=padding_value, stride=stride)
 
     @property
     def weights(self) -> Optional[Tuple[np.array, np.array]]:
@@ -168,8 +171,8 @@ class ConvLayer2D(Layer):
         if self._padding == 'same':
             return n, h_in, w_in, n_f
         elif self._padding == 'valid':
-            h_out = (h_in - h_f) // self._stride + 1
-            w_out = (w_in - w_f) // self._stride + 1
+            h_out = (h_in - h_f + 2 * self._padding_value) // self._stride + 1
+            w_out = (w_in - w_f + 2 * self._padding_value) // self._stride + 1
             return n, h_out, w_out, n_f
         else:
             raise InvalidPaddingModeError(
@@ -183,11 +186,11 @@ class ConvLayer2D(Layer):
         h_pad - single side padding on height of the volume
         w_pad - single side padding on width of the volume
         """
-        if self._padding == 'same':
+        if self._padding == 'same' and self._stride == 1:
             h_f, w_f, _, _ = self._w.shape
             return (h_f - 1) // 2, (w_f - 1) // 2
         elif self._padding == 'valid':
-            return 0, 0
+            return self._padding_value, self._padding_value
         else:
             raise InvalidPaddingModeError(
                 f"Unsupported padding value: {self._padding}"
